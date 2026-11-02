@@ -22,8 +22,6 @@
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts"
   },
   "dependencies": {
-    "@nestjs/authentication": "^0.1.2",
-    "@nestjs/authorization": "^0.1.0",
     "@nestjs/cache-manager": "^12.0.2",
     "@nestjs/common": "^12.0.1",
     "@nestjs/core": "^12.0.1",
@@ -31,22 +29,27 @@
     "@nestjs/observe": "^0.3.0",
     "@nestjs/platform-express": "^12.0.1",
     "@nestjs/platform-socket.io": "^12.3.2",
-    "@nestjs/throttler": "^6.7.1",
     "@nestjs/websockets": "^12.3.2",
     "@socket.io/redis-adapter": "^8.3.0",
     "cache-manager": "^7.2.9",
+    "class-validator": "^0.15.1",
     "drizzle-orm": "1.0.0-rc.5",
     "pg": "^8.23.1",
     "redis": "^6.3.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "socket.io": "^4.8.4"
+    "socket.io": "^4.8.4",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@nestjs/authentication": "^0.1.2",
+    "@nestjs/authorization": "^0.1.0",
     "@nestjs/cli": "^12.0.0",
+    "@nestjs/mail": "^0.0.1",
     "@nestjs/mau": "^0.2.6",
     "@nestjs/schematics": "^12.0.0",
     "@nestjs/testing": "^12.0.1",
+    "@nestjs/throttler": "^6.7.1",
     "@types/express": "^5.0.0",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.23.1",
