@@ -1,6 +1,8 @@
+import type { User } from '../users/user.js';
+
 declare module '@nestjs/authentication' {
   interface AuthenticationTypes {
-    // ...
-    refreshTokens: false;
+    user: User;
+    sessionExtra: { user: User };
   }
 }

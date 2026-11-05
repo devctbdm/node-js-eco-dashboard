@@ -21,7 +21,9 @@ export class JwtAuth extends JwtBearerProvider<User> {
 
   // Called after the signature and claims checked out.
   // Returning null (the user was deleted) rejects the token.
-  validate({ sub }: JwtClaims) {
-    return sub ? this.usersRepository.findById(sub) : null;
+  async validate({ sub }: JwtClaims) {
+    if (!sub) return null;
+    const user = await this.usersRepository.findById(sub);
+    return user?.status === 'active' ? user : null;
   }
 }

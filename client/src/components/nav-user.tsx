@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -25,6 +26,8 @@ import {
   SparklesIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { API_URL } from "@/lib/api";
 
 export function NavUser({
   user,
@@ -36,6 +39,28 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
+  const router = useRouter();
+  const [logoutError, setLogoutError] = React.useState("");
+
+  async function signOut() {
+    setLogoutError("");
+    try {
+      const response = await fetch(`${API_URL}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Sign out could not be completed.");
+      router.replace("/adminlogin");
+      router.refresh();
+    } catch (error) {
+      setLogoutError(
+        error instanceof Error
+          ? error.message
+          : "Sign out could not be completed.",
+      );
+    }
+  }
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -103,10 +128,15 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={signOut}>
               <LogOutIcon />
               Log out
             </DropdownMenuItem>
+            {logoutError && (
+              <p role="alert" className="px-2 py-1 text-xs text-destructive">
+                {logoutError}
+              </p>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

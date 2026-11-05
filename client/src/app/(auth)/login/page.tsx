@@ -19,15 +19,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { API_URL } from "@/lib/api";
 
 /* ------------------------------ config -------------------------------- */
 
 // Your NestJS base URL, e.g. NEXT_PUBLIC_API_URL=http://localhost:4000
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 // POST -> { email, password, rememberMe }  (sets an httpOnly cookie on success)
-const LOGIN_URL = `${API}/auth/customer/login`;
+const LOGIN_URL = `${API_URL}/auth/customer/login`;
 const REGISTER_PATH = "/register";
-const FORGOT_PATH = "/account/forgot-password";
+const FORGOT_PATH = "/forget-password";
 const AFTER_LOGIN = "/account";
 
 const emailOk = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -144,7 +144,7 @@ function CustomerLogin() {
                 className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm text-emerald-700 dark:text-emerald-400"
               >
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden />
-                Your account is ready. Sign in to get started.
+                Check your email to verify your account, then sign in.
               </div>
             )}
 
@@ -376,7 +376,17 @@ function CustomerLogin() {
 /* useSearchParams needs a Suspense boundary in the App Router */
 export default function CustomerLoginPage() {
   return (
-    <React.Suspense fallback={null}>
+    <React.Suspense
+      fallback={
+        <main className="grid min-h-svh lg:grid-cols-2">
+          <div className="flex items-center justify-center px-6 py-8 sm:px-10">
+            <div className="w-full max-w-sm rounded-xl border bg-card p-6 text-sm text-muted-foreground">
+              Loading sign in…
+            </div>
+          </div>
+        </main>
+      }
+    >
       <CustomerLogin />
     </React.Suspense>
   );

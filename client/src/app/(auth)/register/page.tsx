@@ -22,20 +22,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { API_URL } from "@/lib/api";
 
 /* ------------------------------ config -------------------------------- */
 
 // Your NestJS base URL, e.g. NEXT_PUBLIC_API_URL=http://localhost:4000
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 // POST -> { fullName, email, password, marketingOptIn }  (409 if email exists)
-const REGISTER_URL = `${API}/auth/register`;
+const REGISTER_URL = `${API_URL}/auth/register`;
 // Where customers sign in (adjust to your route)
-const LOGIN_PATH = "/account/login";
+const LOGIN_PATH = "/login";
 
 const emailOk = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
 const rules = [
-  { id: "len", label: "8+ characters", test: (v: string) => v.length >= 8 },
+  { id: "len", label: "12+ characters", test: (v: string) => v.length >= 12 },
   {
     id: "case",
     label: "Upper & lower case",

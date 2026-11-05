@@ -18,7 +18,7 @@ export class PasswordResetController {
   @Post('forgot')
   @HttpCode(202)
   forgot(@Body() body: EmailDto) {
-    this.passwordResetService.request(body.email);
+    return this.passwordResetService.request(body.email);
   }
 
   // Called by the page the link opens, with the token from its URL and the new password.
@@ -28,11 +28,11 @@ export class PasswordResetController {
     const result = await this.passwordResetService.reset(
       body.token,
       body.password,
-      { signIn: true },
+      { signIn: false },
     );
     if (!result) {
       throw new BadRequestException('Invalid or expired link');
     }
-    return { mfaRequired: result.signedIn?.session.mfa === 'pending' };
+    return { reset: true };
   }
 }

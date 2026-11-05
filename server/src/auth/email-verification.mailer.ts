@@ -4,7 +4,7 @@ import {
   type EmailVerificationLink,
 } from '@nestjs/authentication';
 import { Injectable } from '@nestjs/common';
-import { Mailer, type Mailable } from '@nestjs/mail';
+import { html, Mailer, type Mailable } from '@nestjs/mail';
 import { UsersRepository } from '../users/users.repository.js';
 
 @Injectable()
@@ -12,8 +12,8 @@ export class VerifyEmailMail implements Mailable<EmailVerificationLink> {
   render({ url }: EmailVerificationLink) {
     return {
       subject: 'Confirm your email address',
-      template: 'verify-email',
-      context: { url },
+      html: html`<p>Confirm your email address:</p>
+        <p><a href="${url}">Verify email</a></p>`,
     };
   }
 }

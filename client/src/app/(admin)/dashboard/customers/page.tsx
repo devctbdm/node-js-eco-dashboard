@@ -45,6 +45,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { API_URL } from "@/lib/api";
 import {
   memo,
   useCallback,
@@ -69,9 +70,44 @@ type Customer = {
   lastLogin: string;
   joinedAt: string;
 };
+type ManagedUser = {
+  id: string;
+  email: string;
+  fullName: string;
+  roles: string[];
+  status: "active" | "suspended" | "blocked";
+};
 type SortKey = "name" | "totalSpent" | "orders" | "products" | "lastLogin";
 
-const API = process.env.NEXT_PUBLIC_API_URL; // e.g. http://localhost:3001
+const isManagedUser = (value: unknown): value is ManagedUser => {
+  if (!value || typeof value !== "object") return false;
+  const user = value as Record<string, unknown>;
+  return (
+    typeof user.id === "string" &&
+    typeof user.email === "string" &&
+    typeof user.fullName === "string" &&
+    Array.isArray(user.roles) &&
+    user.roles.every((role) => typeof role === "string") &&
+    (user.status === "active" ||
+      user.status === "suspended" ||
+      user.status === "blocked")
+  );
+};
+
+const toCustomer = (user: ManagedUser): Customer => ({
+  id: user.id,
+  name: user.fullName,
+  email: user.email,
+  phone: "—",
+  country: "—",
+  status: user.status === "suspended" ? "inactive" : user.status,
+  totalSpent: 0,
+  orders: 0,
+  products: 0,
+  lastLogin: "—",
+  joinedAt: "—",
+});
+
 const PER_PAGE = 10;
 const ease = [0.22, 1, 0.36, 1] as const;
 const statusStyle: Record<Status, string> = {
@@ -124,13 +160,16 @@ const money = (n: number) =>
   }).format(n);
 const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 const ago = (iso: string) => {
+  if (!iso || iso === "—") return "—";
   const h = (new Date(iso).getTime() - Date.now()) / 3600e3;
   return Math.abs(h) < 24
     ? rtf.format(Math.round(h), "hour")
     : rtf.format(Math.round(h / 24), "day");
 };
 const date = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-US", { dateStyle: "medium" });
+  !iso || iso === "—"
+    ? "—"
+    : new Date(iso).toLocaleDateString("en-US", { dateStyle: "medium" });
 const initials = (n: string) =>
   n
     .split(" ")
@@ -169,6 +208,32 @@ const Stat = memo(function Stat({
     </motion.div>
   );
 });
+
+function SortHeader({
+  k,
+  children,
+  right,
+  onSort,
+  sortKey,
+}: {
+  k: SortKey;
+  children: React.ReactNode;
+  right?: boolean;
+  onSort: (key: SortKey) => void;
+  sortKey: SortKey;
+}) {
+  return (
+    <TableHead className={right ? "text-right" : ""}>
+      <button
+        onClick={() => onSort(k)}
+        className={`inline-flex items-center gap-1 hover:text-foreground ${sortKey === k ? "text-foreground" : ""}`}
+      >
+        {children}
+        <ArrowUpDown className="size-3" />
+      </button>
+    </TableHead>
+  );
+}
 
 const Row = memo(function Row({
   c,
@@ -261,20 +326,17 @@ function QuickAdd({
     if (Object.keys(v).length) return;
     setBusy(true);
     try {
-      let c: Partial<Customer> = {};
-      if (API) {
-        const r = await fetch(`${API}/customers`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(f),
-        });
-        if (!r.ok)
-          throw new Error(
-            (await r.json().catch(() => ({}))).message ||
-              "Failed to create account",
-          );
-        c = await r.json();
-      }
+      const r = await fetch(`${API_URL}/customers`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(f),
+      });
+      if (!r.ok)
+        throw new Error(
+          (await r.json().catch(() => ({}))).message ||
+            "Failed to create account",
+        );
+      const c: Partial<Customer> = await r.json();
       const now = new Date().toISOString();
       onCreated({
         id: `C-${Date.now().toString().slice(-6)}`,
@@ -349,7 +411,10 @@ function QuickAdd({
           </div>
           <div className="space-y-1.5">
             <Label>Status</Label>
-            <Select value={f.status} onValueChange={(v) => set("status", v)}>
+            <Select
+              value={f.status}
+              onValueChange={(v) => set("status", v ?? "active")}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -399,9 +464,20 @@ export default function CustomersPage() {
     const ctl = new AbortController();
     (async () => {
       try {
-        if (!API) throw 0;
-        const r = await fetch(`${API}/customers`, { signal: ctl.signal });
-        setData(await r.json());
+        const response = await fetch(`${API_URL}/admin/users`, {
+          credentials: "include",
+          signal: ctl.signal,
+        });
+        if (!response.ok) throw new Error("Failed to load customers");
+        const payload: unknown = await response.json();
+        if (!Array.isArray(payload) || !payload.every(isManagedUser)) {
+          throw new Error("Customer API returned an invalid response");
+        }
+        setData(
+          payload
+            .filter((user) => user.roles.includes("customer"))
+            .map(toCustomer),
+        );
       } catch {
         if (!ctl.signal.aborted) setData(mock());
       }
@@ -449,33 +525,15 @@ export default function CustomersPage() {
     const upd = { ...c, status: next };
     setData((d) => d!.map((x) => (x.id === c.id ? upd : x)));
     setOpen(upd);
-    if (API)
-      fetch(`${API}/customers/${c.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: next }),
-      }).catch(() => {});
+    fetch(`${API_URL}/admin/users/${c.id}/status`, {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: next === "inactive" ? "suspended" : next,
+      }),
+    }).catch(() => {});
   };
-
-  const Th = ({
-    k,
-    children,
-    right,
-  }: {
-    k: SortKey;
-    children: React.ReactNode;
-    right?: boolean;
-  }) => (
-    <TableHead className={right ? "text-right" : ""}>
-      <button
-        onClick={() => toggleSort(k)}
-        className={`inline-flex items-center gap-1 hover:text-foreground ${sort.key === k ? "text-foreground" : ""}`}
-      >
-        {children}
-        <ArrowUpDown className="size-3" />
-      </button>
-    </TableHead>
-  );
 
   return (
     <div className="space-y-6 p-4 md:p-8">
@@ -560,18 +618,45 @@ export default function CustomersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <Th k="name">Customer</Th>
+              <SortHeader
+                k="name"
+                onSort={toggleSort}
+                sortKey={sort.key}
+              >
+                Customer
+              </SortHeader>
               <TableHead>Status</TableHead>
-              <Th k="totalSpent" right>
+              <SortHeader
+                k="totalSpent"
+                right
+                onSort={toggleSort}
+                sortKey={sort.key}
+              >
                 Total spent
-              </Th>
-              <Th k="orders" right>
+              </SortHeader>
+              <SortHeader
+                k="orders"
+                right
+                onSort={toggleSort}
+                sortKey={sort.key}
+              >
                 Orders
-              </Th>
-              <Th k="products" right>
+              </SortHeader>
+              <SortHeader
+                k="products"
+                right
+                onSort={toggleSort}
+                sortKey={sort.key}
+              >
                 Products
-              </Th>
-              <Th k="lastLogin">Last login</Th>
+              </SortHeader>
+              <SortHeader
+                k="lastLogin"
+                onSort={toggleSort}
+                sortKey={sort.key}
+              >
+                Last login
+              </SortHeader>
             </TableRow>
           </TableHeader>
           <TableBody>

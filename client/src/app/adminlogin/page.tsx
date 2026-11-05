@@ -18,15 +18,15 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { API_URL } from "@/lib/api";
 
 /* ------------------------------ config -------------------------------- */
 
 // Your NestJS base URL, e.g. NEXT_PUBLIC_API_URL=http://localhost:4000
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 // POST -> { email, password, rememberMe }  (sets an httpOnly cookie on success)
-const LOGIN_URL = `${API}/auth/login`;
+const LOGIN_URL = `${API_URL}/auth/login`;
 // GET  -> { exists: boolean }  (used only to show a first-time setup link)
-const STATUS_URL = `${API}/auth/super-admin/status`;
+const STATUS_URL = `${API_URL}/auth/super-admin/status`;
 
 const emailOk = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
@@ -172,7 +172,7 @@ export default function LoginPage() {
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
                 <Link
-                  href="/forgot-password"
+                  href="/forget-password"
                   className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
                 >
                   Forgot password?
@@ -244,7 +244,7 @@ export default function LoginPage() {
               <p className="text-center text-sm text-muted-foreground">
                 First time here?{" "}
                 <Link
-                  href="/admin/register"
+                  href="/setup"
                   className="font-medium text-foreground underline-offset-4 hover:underline"
                 >
                   Set up your store

@@ -20,15 +20,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { API_URL } from "@/lib/api";
 
 /* ------------------------------ config -------------------------------- */
 
 // Your NestJS base URL, e.g. NEXT_PUBLIC_API_URL=http://localhost:4000
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 // GET  -> { exists: boolean }   (true once a super admin has been created)
-const STATUS_URL = `${API}/auth/super-admin/status`;
+const STATUS_URL = `${API_URL}/auth/super-admin/status`;
 // POST -> { fullName, email, password }   (403/409 if one already exists)
-const REGISTER_URL = `${API}/auth/super-admin/register`;
+const REGISTER_URL = `${API_URL}/auth/super-admin/register`;
 // Set to true to preview the form UI before your backend is ready
 const SKIP_STATUS_CHECK = false;
 
@@ -39,8 +39,8 @@ const emailOk = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 const rules = [
   {
     id: "len",
-    label: "At least 8 characters",
-    test: (v: string) => v.length >= 8,
+    label: "At least 12 characters",
+    test: (v: string) => v.length >= 12,
   },
   {
     id: "case",
@@ -185,8 +185,32 @@ export default function AdminRegisterPage() {
   }, []);
 
   React.useEffect(() => {
-    checkStatus();
-  }, [checkStatus]);
+    let active = true;
+
+    const runCheck = async () => {
+      if (SKIP_STATUS_CHECK) return;
+      if (!active) return;
+      setPhase("checking");
+
+      try {
+        const res = await fetch(STATUS_URL, { cache: "no-store" });
+        if (!active) return;
+        if (!res.ok) throw new Error("status");
+        const data = (await res.json()) as { exists: boolean };
+        if (!active) return;
+        setPhase(data.exists ? "locked" : "open");
+      } catch {
+        if (!active) return;
+        setPhase("error");
+      }
+    };
+
+    void runCheck();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   /* Validation */
   const passed = rules.filter((r) => r.test(password)).length;
@@ -234,7 +258,7 @@ export default function AdminRegisterPage() {
         return;
       }
       setPhase("done");
-      setTimeout(() => router.push("/login"), 1800);
+      setTimeout(() => router.push("/adminlogin"), 1800);
     } catch {
       setServerError(
         "Can’t reach the server. Check your connection and try again.",
@@ -299,7 +323,7 @@ export default function AdminRegisterPage() {
                     text="A super admin account already exists, so this page is closed. Sign in to manage your store."
                   >
                     <Button
-                      render={<Link href="/login" />}
+                      render={<Link href="/adminlogin" />}
                       nativeButton={false}
                     >
                       Go to sign in <ArrowRight />
@@ -494,7 +518,7 @@ export default function AdminRegisterPage() {
       <aside className="relative hidden overflow-hidden border-l bg-muted/40 lg:flex lg:items-center lg:justify-center lg:p-12">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [background-size:48px_48px] opacity-50 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-size-[48px_48px] opacity-50 mask-[radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"
         />
         <motion.div
           initial={reduce ? false : { opacity: 0, y: 12 }}

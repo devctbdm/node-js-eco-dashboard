@@ -10,14 +10,36 @@ export class CredentialsService {
     private readonly passwordHasher: PasswordHasher,
   ) {}
 
-  async register(email: string, password: string): Promise<User> {
+  async register(
+    email: string,
+    password: string,
+    fullName: string,
+    marketingOptIn = false,
+  ): Promise<User> {
     if (await this.usersRepository.findByEmail(email)) {
       throw new ConflictException('Email already registered');
     }
     // The address is unverified: anyone can type any email into a sign-up form.
     return this.usersRepository.create(email, {
       passwordHash: await this.passwordHasher.hash(password),
+      fullName,
+      marketingOptIn,
     });
+  }
+
+  async registerFirstSuperAdmin(
+    email: string,
+    password: string,
+    fullName: string,
+  ) {
+    if (await this.usersRepository.hasSuperAdmin()) {
+      throw new ConflictException('Initial administrator already exists');
+    }
+    return this.usersRepository.createInitialSuperAdmin(
+      email,
+      await this.passwordHasher.hash(password),
+      fullName,
+    );
   }
 
   /** The user, or `null` when the email or the password is wrong. */
@@ -29,7 +51,12 @@ export class CredentialsService {
       password,
       found?.passwordHash,
     );
-    if (!valid || !found?.passwordHash) {
+    if (
+      !valid ||
+      !found?.passwordHash ||
+      found.user.status !== 'active' ||
+      (found.lockedUntil && found.lockedUntil.getTime() > Date.now())
+    ) {
       return null;
     }
     // The cost settings changed since this hash was stored: upgrade it now,

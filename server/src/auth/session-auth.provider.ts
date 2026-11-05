@@ -20,7 +20,8 @@ export class SessionAuth extends SessionCookieProvider<User> {
 
   // Called for every request with a live session cookie.
   // Returning null (the user was deleted) ends the session.
-  validate(session: SessionRecord) {
-    return this.usersRepository.findById(session.userId);
+  async validate(session: SessionRecord) {
+    const user = await this.usersRepository.findById(session.userId);
+    return user?.status === 'active' ? user : null;
   }
 }

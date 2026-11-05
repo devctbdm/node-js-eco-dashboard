@@ -4,7 +4,7 @@ import {
   type PasswordResetLink,
 } from '@nestjs/authentication';
 import { Injectable } from '@nestjs/common';
-import { Mailer, type Mailable } from '@nestjs/mail';
+import { html, Mailer, type Mailable } from '@nestjs/mail';
 import { UsersRepository } from '../users/users.repository.js';
 
 @Injectable()
@@ -12,8 +12,8 @@ export class PasswordResetMail implements Mailable<PasswordResetLink> {
   render({ url }: PasswordResetLink) {
     return {
       subject: 'Reset your password',
-      template: 'password-reset',
-      context: { url },
+      html: html`<p>Reset your password:</p>
+        <p><a href="${url}">Reset password</a></p>`,
     };
   }
 }

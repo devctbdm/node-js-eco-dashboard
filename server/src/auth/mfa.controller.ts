@@ -5,6 +5,7 @@ import {
   Public,
   SignInService,
 } from '@nestjs/authentication';
+import { Can } from '@nestjs/authorization';
 import {
   Body,
   Controller,
@@ -13,6 +14,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { User } from '../users/user.js';
+import { PermissionPolicy } from './permission.policy.js';
 
 @Controller('auth/mfa')
 export class MfaController {
@@ -24,6 +26,7 @@ export class MfaController {
   // Returns the otpauth:// URI for the web app to show as a QR code,
   // and the secret for people who type it in instead.
   @Post('enroll')
+  @Can(PermissionPolicy, 'has', () => ['account.update'] as const)
   enroll(@CurrentUser() user: User) {
     return this.mfaService.enroll(user.id, user.email);
   }
@@ -32,6 +35,7 @@ export class MfaController {
   // receives a code from the new one.
   @Authenticate({ mfa: true })
   @Post('replace')
+  @Can(PermissionPolicy, 'has', () => ['account.update'] as const)
   replace(@CurrentUser() user: User) {
     return this.mfaService.enroll(user.id, user.email, { replace: true });
   }
@@ -41,6 +45,7 @@ export class MfaController {
   // Recovery codes are shown once.
   @Post('confirm')
   @HttpCode(200)
+  @Can(PermissionPolicy, 'has', () => ['account.update'] as const)
   async confirm(@CurrentUser('id') userId: string, @Body('code') code: string) {
     if (!(await this.signInService.confirmMfa(userId, code))) {
       throw new UnauthorizedException('Invalid code');

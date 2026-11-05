@@ -2,36 +2,37 @@ import { Policy, type PolicyBefore } from '@nestjs/authorization';
 import type { User } from '../users/user.js';
 import type { Product } from './product.js';
 
-const isStaff = (user: User | null) => !!user?.roles.includes('staff');
+const can = (user: User | null, permission: string) =>
+  !!user &&
+  (user.permissions.includes('*') ||
+    user.permissions.includes(permission));
 
 @Policy()
 export class ProductPolicy implements PolicyBefore<User> {
-  // Admins pass every check below, including abilities added later.
   before(user: User | null) {
-    if (user?.roles.includes('admin')) {
+    if (user?.permissions.includes('*')) {
       return true;
     }
   }
 
   // `null` is a guest. Everyone sees published products; staff also see drafts.
   view(user: User | null, product: Product) {
-    return product.published || isStaff(user);
+    return product.published || can(user, 'products.read');
   }
 
   viewDrafts(user: User | null) {
-    return isStaff(user);
+    return can(user, 'products.read');
   }
 
   create(user: User | null) {
-    return isStaff(user);
+    return can(user, 'products.create');
   }
 
   update(user: User | null) {
-    return isStaff(user);
+    return can(user, 'products.update');
   }
 
-  // Nobody but admins, who get through in before().
-  delete(_user: User | null) {
-    return false;
+  delete(user: User | null) {
+    return can(user, 'products.delete');
   }
 }

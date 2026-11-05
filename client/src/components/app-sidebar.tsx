@@ -13,21 +13,14 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import {
-  BotIcon,
   CircleUserRound,
   GalleryVerticalEndIcon,
   LockKeyhole,
-  Settings2Icon,
   TerminalSquareIcon,
 } from "lucide-react";
+import { hasPermission, type AuthenticatedUser } from "@/lib/api";
 
-// This is sample data.
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   teams: [
     {
       name: "DevCT Inc",
@@ -45,37 +38,22 @@ const data = {
         {
           title: "Overview",
           url: "/dashboard",
+          permission: "dashboard.read",
         },
         {
           title: "Products",
           url: "/dashboard/products",
+          permission: "products.read",
         },
         {
           title: "Categories",
           url: "/dashboard/categories",
+          permission: "products.read",
         },
         {
           title: "Orders",
           url: "/dashboard/orders",
-        },
-      ],
-    },
-    {
-      title: "Models",
-      url: "#",
-      icon: <BotIcon />,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
+          permission: "orders.read",
         },
       ],
     },
@@ -87,15 +65,7 @@ const data = {
         {
           title: "Customers",
           url: "/dashboard/customers",
-        },
-
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
+          permission: "customers.read",
         },
       ],
     },
@@ -107,47 +77,47 @@ const data = {
         {
           title: "Overviews",
           url: "/dashboard/administrator",
+          permission: "roles.read",
         },
         {
           title: "Team",
           url: "/dashboard/team",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: <Settings2Icon />,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
+          permission: "staff.read",
         },
       ],
     },
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  user,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & { user: AuthenticatedUser }) {
+  const navMain = data.navMain
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) =>
+        hasPermission(user.permissions, item.permission),
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser
+          user={{
+            name: user.fullName || user.email,
+            email: user.email,
+            avatar: "",
+          }}
+        />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
